@@ -61,6 +61,27 @@
 
 ## 使用方法
 
+### 下载固件包 (ipsw 文件)
+使用 ipsw 下载的命令格式为：
+```shell
+ipsw download appledb --os iOS --device <设备代码> --beta --latest     # 最新beta版本固件
+
+ipsw download appledb --os iOS --device <设备代码> --latest            # 最新的稳定版固件
+
+ipsw download appledb --os iOS --device <设备代码> --version iOS版本号  # 下载指定的稳定版固件
+```
+
+举例：
+```shell
+# iPhone 15 pro (固件代码 iPhone16,1)
+ipsw download appledb --os iOS --device iPhone16,1 --beta --latest
+
+ipsw download appledb --os iOS --device iPhone16,1 --latest
+
+ipsw download appledb --os iOS --device iPhone16,1 --version 18.2
+```
+
+
 ### 基本用法
 
 ```bash
