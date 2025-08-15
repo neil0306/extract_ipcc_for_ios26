@@ -107,8 +107,9 @@ echo "✓ 找到.dmg文件，开始提取..."
 
 # 定义要查找的bundle文件列表
 bundle_files=(
+    # 中国运营商
     "ChinaTelecom_USIM_cn.bundle"
-    "ChinaTelecom_hk.bundle"
+    "ChinaTelecom_hk.bundle"           # ✓ 实际存在
     "ChinaTelecom_USIM_mo.bundle"
     "CMCC_cn.bundle"
     "CMCC_hk.bundle"
@@ -117,8 +118,11 @@ bundle_files=(
     "Unicom_cn.bundle"
     "Unicom_hk.bundle"
     "CBN_cn.bundle"
+    # 香港运营商
     "Hutchison_HKBN_hk.bundle"
     "Hutchison_hk.bundle"
+    "SmarTone_hk.bundle"
+    "CSL_hk.bundle"
 )
 
 # 获取运营商名称的函数
@@ -140,6 +144,12 @@ get_carrier_name() {
         Hutchison_*)
             echo "香港和记"
             ;;
+        SmarTone_*)
+            echo "香港SmarTone"
+            ;;
+        CSL_*)
+            echo "香港CSL"
+            ;;
         *)
             echo "未知运营商"
             ;;
@@ -157,6 +167,8 @@ mkdir -p "$classified_dir/中国移动"
 mkdir -p "$classified_dir/中国联通"
 mkdir -p "$classified_dir/中国广电"
 mkdir -p "$classified_dir/香港和记"
+mkdir -p "$classified_dir/香港SmarTone"
+mkdir -p "$classified_dir/香港CSL"
 
 # 创建IPCC输出目录
 ipcc_dir="$output_dir/ipcc_files"
@@ -228,9 +240,9 @@ if [ -d "$extracted_iphone_dir" ]; then
     done
     
     if [ $found_bundles -eq 0 ]; then
-        echo "  ⚠️ 未找到目标中国运营商bundle文件"
+        echo "  ⚠️ 未找到目标运营商bundle文件"
     else
-        echo "  ✓ 共找到并分类 $found_bundles 个中国运营商bundle文件"
+        echo "  ✓ 共找到并分类 $found_bundles 个运营商bundle文件"
     fi
 else
     echo "  ✗ 错误：iPhone目录不存在"
@@ -242,23 +254,23 @@ echo "步骤7: 创建IPCC文件..."
 
 # 步骤7：为每个运营商的bundle文件创建IPCC文件
 total_ipcc_created=0
-for carrier in "中国电信" "中国移动" "中国联通" "中国广电" "香港和记"; do
+for carrier in "中国电信" "中国移动" "中国联通" "中国广电" "香港和记" "香港SmarTone" "香港CSL"; do
     carrier_dir="$classified_dir/$carrier"
     
     if [ -d "$carrier_dir" ]; then
         # 检查该运营商目录下是否有bundle文件
-        bundle_count=$(find "$carrier_dir" -maxdepth 1 -name "*.bundle" -type d 2>/dev/null | wc -l)
+        bundle_count=$(find "$carrier_dir" -maxdepth 1 -type d | grep -v "^$carrier_dir$" | wc -l)
         bundle_count=$(echo $bundle_count | tr -d ' ')
         
         if [ $bundle_count -gt 0 ]; then
             echo "  处理 $carrier ($bundle_count 个bundle文件)..."
             
             # 为该运营商的每个bundle创建单独的IPCC文件
-            find "$carrier_dir" -maxdepth 1 -name "*.bundle" -type d | while read bundle_dir; do
+            find "$carrier_dir" -maxdepth 1 -type d | grep -v "^$carrier_dir$" | while read bundle_dir; do
                 bundle_name=$(basename "$bundle_dir")
                 
                 # 创建临时工作目录
-                temp_work_dir="/tmp/ipcc_work_$$_$(echo $bundle_name | tr '.' '_')"
+                temp_work_dir="/tmp/ipcc_work_$$_$(echo $bundle_name | tr '.' '_' | tr '/' '_')"
                 mkdir -p "$temp_work_dir/Payload"
                 
                 # 拷贝bundle到Payload目录
@@ -266,14 +278,25 @@ for carrier in "中国电信" "中国移动" "中国联通" "中国广电" "香�
                 
                 # 创建ZIP文件
                 cd "$temp_work_dir"
-                zip_file="$ipcc_dir/${bundle_name%%.bundle}.zip"
+                
+                # 处理数字目录名的情况（如45006, 45010）
+                if [[ "$bundle_name" =~ ^[0-9]+$ ]]; then
+                    # 数字目录，使用数字作为IPCC文件名
+                    zip_file="$ipcc_dir/${bundle_name}.zip"
+                    ipcc_name="${bundle_name}.ipcc"
+                else
+                    # .bundle目录，移除.bundle后缀
+                    zip_file="$ipcc_dir/${bundle_name%%.bundle}.zip"
+                    ipcc_name="${bundle_name%%.bundle}.ipcc"
+                fi
+                
                 zip -r "$zip_file" Payload/ >/dev/null 2>&1
                 
                 if [ $? -eq 0 ]; then
                     # 将.zip改名为.ipcc
-                    ipcc_file="$ipcc_dir/${bundle_name%%.bundle}.ipcc"
+                    ipcc_file="$ipcc_dir/$ipcc_name"
                     mv "$zip_file" "$ipcc_file"
-                    echo "    ✓ 已创建: ${bundle_name%%.bundle}.ipcc"
+                    echo "    ✓ 已创建: $ipcc_name"
                     ((total_ipcc_created++))
                 else
                     echo "    ✗ 压缩失败: $bundle_name"
@@ -301,14 +324,14 @@ echo "4. IPCC文件: $ipcc_dir"
 # 显示分类结果统计
 echo ""
 echo "运营商bundle分类统计："
-for carrier in "中国电信" "中国移动" "中国联通" "中国广电" "香港和记"; do
+for carrier in "中国电信" "中国移动" "中国联通" "中国广电" "香港和记" "香港SmarTone" "香港CSL"; do
     carrier_dir="$classified_dir/$carrier"
     if [ -d "$carrier_dir" ]; then
-        count=$(find "$carrier_dir" -maxdepth 1 -name "*.bundle" -type d 2>/dev/null | wc -l)
+        count=$(find "$carrier_dir" -maxdepth 1 -type d | grep -v "^$carrier_dir$" | wc -l)
         count=$(echo $count | tr -d ' ')
         echo "  $carrier: $count 个bundle"
         if [ $count -gt 0 ]; then
-            find "$carrier_dir" -maxdepth 1 -name "*.bundle" -type d -exec basename {} \; 2>/dev/null | sort | sed 's/^/    - /'
+            find "$carrier_dir" -maxdepth 1 -type d -exec basename {} \; 2>/dev/null | sort | sed 's/^/    - /'
         fi
     fi
 done
