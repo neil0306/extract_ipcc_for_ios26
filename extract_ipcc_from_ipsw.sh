@@ -1,20 +1,24 @@
 #!/bin/bash
 
 # 自动从IPSW文件提取IPCC的完整脚本
-# 使用方法: ./extract_ipcc_from_ipsw.sh <path_to_ipsw_file>
+# 使用方法: ./extract_ipcc_from_ipsw.sh <path_to_ipsw_file> [ipsw_tool_path]
 
 set -e  # Exit on any error
 
 # 检查是否提供了IPSW文件路径
 if [ $# -eq 0 ]; then
     echo "错误：请提供IPSW文件路径"
-    echo "使用方法: $0 <path_to_ipsw_file>"
+    echo "使用方法: $0 <path_to_ipsw_file> [ipsw_tool_path]"
     echo "示例: $0 /path/to/iPhone_16_Pro_23A344_Restore.ipsw"
+    echo "示例: $0 /path/to/iPhone_16_Pro_23A344_Restore.ipsw /usr/local/bin/ipsw"
     exit 1
 fi
 
 # 获取IPSW文件的绝对路径
 IPSW_FILE=$(realpath "$1" 2>/dev/null || echo "$1")
+
+# 设置ipsw工具路径，默认为/opt/homebrew/bin/ipsw
+IPSW_TOOL_PATH="${2:-/opt/homebrew/bin/ipsw}"
 
 # 检查IPSW文件是否存在
 if [ ! -f "$IPSW_FILE" ]; then
@@ -30,16 +34,20 @@ if [ ! -f "$IPSW_FILE" ]; then
 fi
 
 echo "使用IPSW文件: $IPSW_FILE"
+echo "使用ipsw工具路径: $IPSW_TOOL_PATH"
 
-# 检查是否安装了ipsw工具
-if ! command -v ipsw &> /dev/null; then
-    echo "检测到ipsw工具未安装，正在安装..."
-    brew install ipsw
+# 检查ipsw工具是否存在
+if [ ! -f "$IPSW_TOOL_PATH" ]; then
+    echo "错误：ipsw工具不存在于指定路径: $IPSW_TOOL_PATH"
+    echo "请检查ipsw工具路径是否正确，或者安装ipsw工具"
+    echo "安装命令: brew install ipsw"
+    exit 1
 fi
 
 echo "=================================================="
 echo "开始自动提取IPCC文件"
 echo "IPSW文件: $IPSW_FILE"
+echo "ipsw工具: $IPSW_TOOL_PATH"
 echo "=================================================="
 
 # 获取当前工作目录和文件信息
@@ -55,7 +63,7 @@ cd "$work_dir"
 # 步骤1：使用ipsw工具从IPSW文件中提取所有.dmg.aea文件
 echo ""
 echo "步骤1: 使用ipsw工具从IPSW文件中提取.dmg.aea文件..."
-ipsw extract --dmg fs "$IPSW_FILE"
+"$IPSW_TOOL_PATH" extract --dmg fs "$IPSW_FILE"
 
 if [ $? -ne 0 ]; then
     echo "错误：从IPSW文件提取.dmg.aea文件失败"
@@ -84,7 +92,7 @@ echo "✓ 找到最大的.dmg.aea文件: $largest_dmg_aea"
 # 步骤3：使用ipsw工具转换最大的.dmg.aea为.dmg
 echo ""
 echo "步骤3: 使用ipsw工具转换.dmg.aea为.dmg..."
-ipsw fw aea "$largest_dmg_aea"
+"$IPSW_TOOL_PATH" fw aea "$largest_dmg_aea"
 
 if [ $? -ne 0 ]; then
     echo "错误：转换.dmg.aea文件失败"
@@ -109,7 +117,7 @@ echo "✓ 找到.dmg文件，开始提取..."
 bundle_files=(
     # 中国运营商
     "ChinaTelecom_USIM_cn.bundle"
-    "ChinaTelecom_hk.bundle"           # ✓ 实际存在
+    "ChinaTelecom_hk.bundle"
     "ChinaTelecom_USIM_mo.bundle"
     "CMCC_cn.bundle"
     "CMCC_hk.bundle"

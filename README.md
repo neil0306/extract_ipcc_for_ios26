@@ -9,6 +9,7 @@
 - 📦 自动将 bundle 文件转换为 IPCC 格式
 - 🗂️ 按运营商分类整理输出文件
 - ✅ 支持完整的载波配置文件备份
+- 🔧 支持自定义 ipsw 工具路径
 
 ## 支持的运营商
 
@@ -17,6 +18,8 @@
 - **中国联通** (China Unicom) 
 - **中国广电** (China Broadcasting Network)
 - **香港和记** (Hutchison HK)
+- **香港 SmarTone** (SmarTone HK)
+- **香港 CSL** (CSL HK)
 
 ## 系统要求
 
@@ -31,7 +34,7 @@
    # macOS 用户通过 Homebrew 安装
    brew install ipsw
    
-   # 或手动从 GitHub 下载
+   # 其他系统比如 Windows 和 Linux 都可以手动从 GitHub 下载
    # https://github.com/blacktop/ipsw
    ```
 
@@ -45,7 +48,7 @@
 
 1. 克隆或下载此项目：
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/neil0306/extract_ipcc_for_ios26.git
    cd extract_ipcc_for_ios26
    ```
 
@@ -61,7 +64,7 @@
 
 ## 使用方法
 
-### 下载固件包 (ipsw 文件)
+### (准备工作) 下载固件包 (ipsw 文件)
 使用 ipsw 下载的命令格式为：
 ```shell
 ipsw download appledb --os iOS --device <设备代码> --beta --latest     # 最新beta版本固件
@@ -85,17 +88,28 @@ ipsw download appledb --os iOS --device iPhone16,1 --version 18.2
 ### 基本用法
 
 ```bash
-./extract_ipcc_from_ipsw.sh <IPSW文件路径>
+./extract_ipcc_from_ipsw.sh <IPSW文件路径> [ipsw工具路径]
 ```
+
+### 参数说明
+
+- `IPSW文件路径` (必需): 要提取的 IPSW 文件的路径
+- `ipsw工具路径` (可选): ipsw 工具的完整路径，默认为 `/opt/homebrew/bin/ipsw`
 
 ### 示例
 
 ```bash
-# 使用绝对路径
+# 使用默认的 ipsw 工具路径
 ./extract_ipcc_from_ipsw.sh /path/to/iPhone_16_Pro_23A344_Restore.ipsw
 
 # 使用相对路径
 ./extract_ipcc_from_ipsw.sh ./iPhone_16_Pro_23A344_Restore.ipsw
+
+# 指定自定义的 ipsw 工具路径
+./extract_ipcc_from_ipsw.sh /path/to/iPhone_16_Pro_23A344_Restore.ipsw /usr/local/bin/ipsw
+
+# 如果 ipsw 工具在系统 PATH 中的其他位置
+./extract_ipcc_from_ipsw.sh ./iPhone_16_Pro_23A344_Restore.ipsw /usr/bin/ipsw
 ```
 
 ## 输出结构
